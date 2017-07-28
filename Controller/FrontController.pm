@@ -69,7 +69,8 @@ sub _storage_showall {
             user => $row[0],
             name => $row[1],
             first_name => $row[2],
-            birthday => $row[3]
+            birthday => $row[3],
+            last_updated => $row[4]
         }
         ;
     }

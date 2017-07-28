@@ -254,3 +254,20 @@ Wide styles
 .dropdown:hover .dropdown-content {
     display: block;
 }
+
+.edit_button {
+    background-image:url(/Assets/Img/edit-button.png);
+    display:block;
+    height:16px;
+    width:16px;
+    float: left;
+}
+
+.delete_button {
+    background-image:url(/Assets/Img/delete-button.png);
+    display:block;
+    height:16px;
+    width:16px;
+    float:left;
+    margin-left: 5px;
+}

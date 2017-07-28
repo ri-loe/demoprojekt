@@ -15,6 +15,8 @@
             <th>Firstname</th>
             <th>Lastname</th>
             <th>Birthday</th>
+            <th>Last Update</th>
+            <th>Actions</th>
            </tr>
           <TMPL_LOOP NAME=all_users>
            <tr>
@@ -23,6 +25,10 @@
             <td><TMPL_VAR NAME=name></td>
             <td><TMPL_VAR NAME=birthday></td>
             <td><TMPL_VAR NAME=last_updated></td>
+            <td>
+                <a href="index.pl?storage/edit/<TMPL_VAR NAME=user>" class="edit_button">
+                </a><a href="index.pl?storage/delete/<TMPL_VAR NAME=user>" class="delete_button"></a>
+            </td>
             </tr>
           </TMPL_LOOP>
           </table>
