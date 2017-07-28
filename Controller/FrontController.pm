@@ -1,26 +1,25 @@
 package FrontController;
 use strict;
 use warnings FATAL => 'all';
-use DDP;
-
+use DDP {
+    output => 'stdout'
+};
+use HTML::Template;
 
 sub new {
     # class = class name
-    my ($class, $cgi, $dbh, $template) = @_;
+    my ($class, $cgi, $dbh) = @_;
 
     # second parameter module name
     my $self = bless {
             cgi      => $cgi,
             dbh      => $dbh,
-            template => $template,
         }, $class;
     return $self;
 }
 
 sub _handle_request {
     my ($self) = @_;
-
-    # $self->get_path(); -> check for method -> load the method
 
     my $called_sub = $self->_get_called_sub();
 
@@ -29,7 +28,8 @@ sub _handle_request {
     if ($self->can($called_sub)) {
         $self->$called_sub;
     } else {
-        $self->{template}->new(filename => 'Templates/error.tmpl');
+        p ( $called_sub );
+        _show_errorpage();
     }
 };
 
@@ -43,6 +43,7 @@ sub _get_called_sub {
     # remove index and pl from matchlist
     splice(@matches, 0, 2);
 
+    # add _ at start for "private" method nameing
     if (@matches) {
         my $called_sub = join('_', @matches);
         return '_' . $called_sub;
@@ -55,7 +56,7 @@ sub _get_called_sub {
 sub _storage_showall {
     my ($self) = @_;
 
-    my $template = $self->{template};
+    my $template = HTML::Template->new(filename => 'Templates/storage_showall.tmpl');
     my $dbh = $self->{dbh};
 
     my $prep_query = $dbh->prepare("SELECT * FROM users ORDER BY id ASC;");
@@ -73,12 +74,19 @@ sub _storage_showall {
         ;
     }
     $template->param(all_users => $all_users);
+    print $template->output;
 }
 
 # home screen
 sub _index {
-    # home sweet home
+    my $template = HTML::Template->new(filename => 'Templates/index.tmpl');
+    print $template->output;
 }
 
+# show error screen
+sub _show_errorpage {
+    my $template = HTML::Template->new(filename => 'Templates/error.tmpl');
+    $template->output;
+}
 
 1;
