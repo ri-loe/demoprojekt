@@ -11,8 +11,8 @@ my $updated_at;
 
 
 sub new {
-    my ($proto) = @_;
-    my $self = bless {}, $proto;
+    my ($class) = @_;
+    my $self = bless {}, $class;
     return $self;
 }
 

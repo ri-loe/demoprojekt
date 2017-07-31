@@ -2,35 +2,37 @@
 <html>
  <head>
    <meta charset="utf-8"/>
-   <link rel="stylesheet" type="text/css" href="Assets/CSS/demo.css" />
+   <link rel="stylesheet" type="text/css" href="demo.dev.local/Assets/CSS/demo.css" />
    <title>Storage</title>
  </head>
  <body>
      <div class="container">
          <h1><b>Demoprojekt - Storage</b></h1>
          <TMPL_INCLUDE NAME= navigation.tmpl>
-         <table>
-           <tr>
-            <th>Id</th>
-            <th>Firstname</th>
-            <th>Lastname</th>
-            <th>Birthday</th>
-            <th>Last Update</th>
-            <th>Actions</th>
-           </tr>
-          <TMPL_LOOP NAME=all_users>
-           <tr>
-            <td><TMPL_VAR NAME=user></td>
-            <td><TMPL_VAR NAME=first_name></td>
-            <td><TMPL_VAR NAME=name></td>
-            <td><TMPL_VAR NAME=birthday></td>
-            <td><TMPL_VAR NAME=last_updated></td>
-            <td>
-                <a href="index.pl?storage/edit/<TMPL_VAR NAME=user>" class="edit_button">
-                </a><a href="index.pl?storage/delete/<TMPL_VAR NAME=user>" class="delete_button"></a>
-            </td>
-            </tr>
-          </TMPL_LOOP>
-          </table>
+         <div class="content">
+             <table>
+               <tr>
+                <th>Id</th>
+                <th>Firstname</th>
+                <th>Lastname</th>
+                <th>Birthday</th>
+                <th>Last Update</th>
+                <th>Actions</th>
+               </tr>
+              <TMPL_LOOP NAME=all_users>
+               <tr>
+                <td><TMPL_VAR NAME=user></td>
+                <td><TMPL_VAR NAME=first_name></td>
+                <td><TMPL_VAR NAME=name></td>
+                <td><TMPL_VAR NAME=birthday></td>
+                <td><TMPL_VAR NAME=last_updated></td>
+                <td>
+                    <a href="index.pl?storage/edit/<TMPL_VAR NAME=user>" class="edit_button">
+                    </a><a href="index.pl?storage/delete/<TMPL_VAR NAME=user>" class="delete_button"></a>
+                </td>
+                </tr>
+              </TMPL_LOOP>
+              </table>
+          </div>
        </div>
      </div>
