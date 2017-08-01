@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="/Assets/CSS/demo.css" />
+        <title>Storage</title>
+    </head>
+    <body>
+        <div class="container">
+            <h1><b>Demoprojekt - Storage</b></h1>
+            <TMPL_INCLUDE NAME= navigation.tmpl>
+            <div class="content">
+                 <form method="post">
+                        <h3>Edit Storage</h3>
+                        <ul class="list-unstyled">
+                            <li>
+                                <label>Id: </label>
+                                <input type="text" name="ipt_id" value="<TMPL_VAR NAME=id>" disabled />
+                            <li>
+                                <label>Name: </label>
+                                <input type="text" name="ipt_name" value="<TMPL_VAR NAME=name>" required />
+                            </li>
+                            <li>
+                                <label>Capacity: </label>
+                                <input type="text" name="iput_capacity" value="<TMPL_VAR NAME=capacity>" required />
+                            </li>
+                            <li>
+                                <input type="submit" class="btn" name="submit_edited_storage" value="Submit" />
+                            </li>
+                        </ul>
+                    </form>

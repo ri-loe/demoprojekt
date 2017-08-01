@@ -85,32 +85,27 @@ sub _storage_new {
     my $cgi = $self->{cgi};
 
     if ( $cgi->request_method eq 'POST') {
-        my $name = $cgi->param('text_name');
-        my $capacity =scalar $cgi->param('text_capacity');
+        my $name = $cgi->param('ipt_name');
+        my $capacity =scalar $cgi->param('ipt_capacity');
 
-        #######################
-        #   TODO:
-        #   validate inserts
-        #
-        #######################
+        #########################
+        #   TODO:               #
+        #   validate inserts    #
+        #                       #
+        #########################
 
         my $storage = Storage->new;
         $storage->set_storage_name($name);
         $storage->set_capacity($capacity);
 
         my $prep_query = $dbh->prepare("INSERT INTO storages (name, capacity) VALUES ('"
-            .  $name . "', "
-            . $capacity . ")");
+            .  $storage->get_storage_name . "', "
+            . $storage->get_capacity . ")");
         $prep_query->execute();
         $dbh->commit();
-
-        $self->_storage_showall('Storage successfully created!');
+        my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
+        $self->_storage_showall('Storage ' . $last_id . ' successfully created!');
     }
-    # wenn POST dann
-    # new Storage Obj ->setStuff
-
-
-
     print $template->output;
 }
 
@@ -123,16 +118,39 @@ sub _storage_delete {
     if ( $cgi->request_method eq 'GET') {
         my $id = $cgi->param('id');
 
-        my $prep_query = $dbh->prepare("DELETE FROM storages WHERE 'id' ==" . $id);
+        my $prep_query = $dbh->prepare("DELETE FROM storages WHERE id = " . $id);
         $prep_query->execute();
         $dbh->commit();
 
         $self->_storage_showall('Storage ' . $id . ' deleted!');
     }
 }
+
 sub _storage_edit {
+    my ($self) = @_;
+    my $dbh = $self->{dbh};
+    my $cgi = $self->{cgi};
+    my $template = HTML::Template->new(filename => 'Templates/storage_edit.tmpl');
 
+    if ( $cgi->request_method eq 'GET') {
+        my $id = $cgi->param('id');
 
+        my $prep_query = $dbh->prepare("SELECT * FROM storages WHERE id = " . $id);
+        $prep_query->execute();
+        my @matches  = $prep_query->fetchrow_array;
+
+        my $storage = Storage->new;
+        $storage->set_storage_id($matches[0]);
+        $storage->set_storage_name($matches[1]);
+        $storage->set_capacity($matches[2]);
+        $storage->set_created_at($matches[3]);
+        $storage->set_updated_at($matches[4]);
+
+        $template->param(id => $storage->get_storage_id);
+        $template->param(name => $storage->get_storage_name);
+        $template->param(capacity => $storage->get_capacity);
+    }
+    print $template->output;
 }
 
 # home screen
