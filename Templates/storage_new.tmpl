@@ -1,31 +1,33 @@
 <!doctype html>
 <html>
- <head>
-   <meta charset="utf-8"/>
-   <link rel="stylesheet" type="text/css" href="Assets/CSS/demo.css" />
-   <title>Storage</title>
- </head>
- <body>
-     <div class="container">
-         <h1><b>Demoprojekt - Storage</b></h1>
-         <TMPL_INCLUDE NAME= navigation.tmpl>
-         <div class="content">
-            <form method="post">
-                <h3>New Storage</h3>
-                <ul class="list-unstyled">
-                    <li>
-                        <label>Name: </label>
-                        <input type="text" name="text_name" value="" required/>
-                    </li>
-                    <li>
-                        <label>Capacity: </label>
-                        <input type="text" name="text_capacity" value="" required/>
-                    </li>
-                    <li>
-                        <input type="submit" class="btn" name="submit_new_storage" value="Submit" />
-                    </li>
-                </ul>
-            </form>
-             <p><TMPL_VAR NAME=test></p>
-         </div>
-     </div>
+    <head>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="/Assets/CSS/demo.css" />
+        <title>Storage</title>
+    </head>
+    <body>
+        <div class="container">
+            <h1><b>Demoprojekt - Storage</b></h1>
+            <TMPL_INCLUDE NAME= navigation.tmpl>
+            <div class="content">
+                <form method="post">
+                    <h3>New Storage</h3>
+                    <ul class="list-unstyled">
+                        <li>
+                            <label>Name: </label>
+                            <input type="text" name="text_name" value="" required/>
+                        </li>
+                        <li>
+                            <label>Capacity: </label>
+                            <input type="text" name="text_capacity" value="" required/>
+                        </li>
+                        <li>
+                            <input type="submit" class="btn" name="submit_new_storage" value="Submit" />
+                        </li>
+                    </ul>
+                </form>
+                <p><TMPL_VAR NAME=test></p>
+            </div>
+        </div>
+    </body>
+</html>

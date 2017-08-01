@@ -13,7 +13,7 @@ my $singleton;
 my $db_host = 'dev.local';
 my $db_user = 'c5261164';
 my $db_pass = '';
-my $db_name = 'c5261164';
+my $db_name = 'demo_db';
 
 
 sub new {

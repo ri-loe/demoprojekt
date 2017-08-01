@@ -17,7 +17,3 @@ print $cgi->header(-type => 'text/html', -charset => 'utf-8');
 
 my $front = FrontController->new($cgi, $dbh);
 $front->_handle_request;
-
-print $cgi->end_html;
-
-

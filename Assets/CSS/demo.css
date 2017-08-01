@@ -240,3 +240,10 @@ Single styles
     float:left;
     margin-left: 5px;
 }
+
+.result_message {
+    margin: 0px -1empx 1.5em;
+    line-height: 2.5;
+    color: #90ec90;
+    padding-left: 1em;
+}

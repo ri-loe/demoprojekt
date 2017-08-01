@@ -1,22 +1,16 @@
-﻿-- Table: public.storage
+﻿﻿-- Table: public.storages
 
--- DROP TABLE public.storage;
+-- DROP TABLE public.storages;
 
-CREATE TABLE public.storage
-(
-    id integer NOT NULL DEFAULT nextval('storage_id_seq'::regclass),
-    name character varying(255) COLLATE pg_catalog."default" NOT NULL,
-    capacity bigint NOT NULL,
-    created_at timestamp without time zone DEFAULT now(),
-    updated_at timestamp without time zone DEFAULT now(),
-    CONSTRAINT storage_pkey PRIMARY KEY (id)
-)
+CREATE TABLE public.storages (id SERIAL PRIMARY KEY, name varchar(255) NOT NULL,
+                              capacity bigint NOT NULL, created_at timestamp DEFAULT current_timestamp,
+                              updated_at timestamp DEFAULT current_timestamp)
 WITH (
     OIDS = FALSE
 )
 TABLESPACE pg_default;
 
-ALTER TABLE public.storage
+ALTER TABLE public.storages
     OWNER to c5261164;
 
 -- Trigger: update_timestamp_on_update
@@ -25,6 +19,6 @@ ALTER TABLE public.storage
 
 CREATE TRIGGER update_timestamp_on_update
     BEFORE UPDATE
-    ON public.storage
+    ON public.storages
     FOR EACH ROW
     EXECUTE PROCEDURE update_updated_at_column();
