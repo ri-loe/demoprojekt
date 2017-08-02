@@ -13,7 +13,7 @@ my $db = DbConnector->new();
 my $dbh = $db->connect();
 my $cgi = CGI->new();
 
-print $cgi->header(-type => 'text/html', -charset => 'utf-8');
+#print $cgi->header(-type => 'text/html', -charset => 'utf-8');
 
 my $front = FrontController->new($cgi, $dbh);
 $front->_handle_request;

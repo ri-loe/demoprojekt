@@ -1,9 +1,8 @@
 package FrontController;
 use strict;
 use warnings FATAL => 'all';
-use DDP {
-    output => 'stdout'
-};
+use DDP;
+    #(output => 'stdout');
 use HTML::Template;
 use Models::Storage;
 
@@ -50,12 +49,13 @@ sub _get_called_sub {
 
 # shows all storages
 sub _storage_showall {
-    my ($self, $success_message) = @_;
-
+    my ($self) = @_;
+    my $cgi = $self->{cgi};
     my $template = HTML::Template->new(filename => 'Templates/storage_showall.tmpl');
     my $dbh = $self->{dbh};
 
-    my $prep_query = $dbh->prepare("SELECT * FROM storages ORDER BY id ASC;");
+    my $prep_query = $dbh->prepare("SELECT id, name, capacity, cast(created_at as timestamp(0))" .
+        ", cast(updated_at as timestamp(0)) FROM storages ORDER BY id ASC;");
     $prep_query->execute();
 
     my $all_storages;
@@ -70,14 +70,25 @@ sub _storage_showall {
         }
         ;
     }
-    if ($success_message) {
-        $template->param(result_message => $success_message);
+    if ($cgi->param('action') and $cgi->param('id')) {
+        if($cgi->param('action') eq 'new') {
+            my $message = ('Storage ' . $cgi->param('id') . ' created!');
+            $template->param(result_message => $message);
+        } elsif ($cgi->param('action') eq 'delete') {
+            my $message = ('Storage ' . $cgi->param('id') . ' deleted!');
+            $template->param(result_message => $message);
+        } else {
+            my $message = ('Storage ' . $cgi->param('id') . ' edited!');
+            $template->param(result_message => $message);
+        }
     }
     $template->param(all_storages => $all_storages);
+
+    print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
     print $template->output;
 }
 
-# creates a new storage obj in the database
+# creates a new storage obj from from input data in the database
 sub _storage_new {
     my ($self) = @_;
     my $dbh = $self->{dbh};
@@ -103,13 +114,17 @@ sub _storage_new {
             . $storage->get_capacity . ")");
         $prep_query->execute();
         $dbh->commit();
+
         my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
-        $self->_storage_showall('Storage ' . $last_id . ' successfully created!');
+        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
+    } else {
+        print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
+        print $template->output;
     }
-    print $template->output;
+
 }
 
-# deletes a storage by id
+# deletes a storage by GET id
 sub _storage_delete {
     my ($self) = @_;
     my $cgi = $self->{cgi};
@@ -121,8 +136,7 @@ sub _storage_delete {
         my $prep_query = $dbh->prepare("DELETE FROM storages WHERE id = " . $id);
         $prep_query->execute();
         $dbh->commit();
-
-        $self->_storage_showall('Storage ' . $id . ' deleted!');
+        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=delete&id=' . $id);
     }
 }
 
@@ -132,6 +146,8 @@ sub _storage_edit {
     my $cgi = $self->{cgi};
     my $template = HTML::Template->new(filename => 'Templates/storage_edit.tmpl');
 
+    my $storage = Storage->new;
+
     if ( $cgi->request_method eq 'GET') {
         my $id = $cgi->param('id');
 
@@ -139,24 +155,41 @@ sub _storage_edit {
         $prep_query->execute();
         my @matches  = $prep_query->fetchrow_array;
 
-        my $storage = Storage->new;
         $storage->set_storage_id($matches[0]);
         $storage->set_storage_name($matches[1]);
         $storage->set_capacity($matches[2]);
         $storage->set_created_at($matches[3]);
         $storage->set_updated_at($matches[4]);
 
+        # fill the form with data
         $template->param(id => $storage->get_storage_id);
         $template->param(name => $storage->get_storage_name);
         $template->param(capacity => $storage->get_capacity);
     }
-    print $template->output;
+    if ( $cgi->request_method eq 'POST') {
+        $storage->set_storage_id($cgi->param('ipt_id'));
+        $storage->set_storage_name($cgi->param('ipt_name'));
+        $storage->set_capacity($cgi->param('ipt_capacity'));
+
+        my $prep_query = $dbh->prepare("UPDATE storages SET "
+            . "name='" . $storage->get_storage_name
+            . "', capacity=" . $storage->get_capacity
+            . " WHERE id=" . $storage->get_storage_id);
+        $prep_query->execute();
+        $dbh->commit();
+
+        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=edit&id=' . $storage->get_storage_id);
+    } else {
+        print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
+        print $template->output;
+    }
 }
 
 # home screen
 sub _index {
     my ($self) = @_;
     my $template = HTML::Template->new(filename => 'Templates/index.tmpl');
+    print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
     print $template->output;
 }
 
@@ -166,5 +199,6 @@ sub _show_errorpage {
     my $template = HTML::Template->new(filename => 'Templates/error.tmpl');
     print $template->output;
 }
+
 
 1;
