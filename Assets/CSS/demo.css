@@ -56,6 +56,15 @@ th, td
     border-bottom: 1px solid #ddd;
 }
 
+.hash_text_area
+{
+    width: 7em;
+    border: none;
+    resize: none;
+    font: 1em/1.2 "Helvetica Neue", Helvetica, Arial, Geneva, sans-serif;
+
+}
+
 a:link { color: royalblue; }
 a:visited { color: purple; }
 a:focus { color: black; }

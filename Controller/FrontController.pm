@@ -3,8 +3,10 @@ use strict;
 use warnings FATAL => 'all';
 use DDP (output => 'stdout');
 use HTML::Template;
-use Models::Storage;
+use Models::Server;
+use Models::OperatingSystem;
 use Services::StorageService;
+use Services::ResultResponse;
 
 # constructor
 sub new {
@@ -54,21 +56,11 @@ sub _storage_showall {
     my $template = HTML::Template->new(filename => 'Templates/storage_showall.tmpl');
     my $dbh = $self->{dbh};
 
-    my $storage = Storage->new();
-    my $st_service = StorageService->new($storage);
-    my $all_storages = $st_service->get_all_storages($dbh);
+    my $all_storages = StorageService->new()->get_all_storages($dbh);
 
     if ($cgi->param('action') and $cgi->param('id')) {
-        if($cgi->param('action') eq 'new') {
-            my $message = ('Storage ' . $cgi->param('id') . ' created!');
-            $template->param(result_message => $message);
-        } elsif ($cgi->param('action') eq 'delete') {
-            my $message = ('Storage ' . $cgi->param('id') . ' deleted!');
-            $template->param(result_message => $message);
-        } else {
-            my $message = ('Storage ' . $cgi->param('id') . ' edited!');
-            $template->param(result_message => $message);
-        }
+        my $rp = ResultResponse->new('Storage', $template, $cgi->param('action'), $cgi->param('id'), 1);
+        $rp->print_result_message;
     }
 
     $template->param(all_storages => $all_storages);
@@ -85,18 +77,17 @@ sub _storage_new {
     my $cgi = $self->{cgi};
 
     if ( $cgi->request_method eq 'POST') {
-        my $name = $cgi->param('ipt_name') =s/<([^>]|\n)*>//g;
-        my $capacity = $cgi->param('ipt_capacity') =s/<([^>]|\n)*>//g;
+        my $name = $cgi->param('ipt_name');
+        my $capacity = $cgi->param('ipt_capacity');
 
         #########################
         #   TODO:               #
         #   validate inserts    #
         #                       #
         #########################
-        my $storage = Storage->new();
-        my $st_service = StorageService->new($storage);
-        $st_service->fill(undef, $name, $capacity, undef, undef)
-            ->save_to_db($dbh);
+        my $st_service = StorageService->new();
+        my $storage = $st_service->fill(undef, $name, $capacity);
+        $st_service->save_to_db($storage, $dbh);
 
         my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
         print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
@@ -116,9 +107,8 @@ sub _storage_delete {
     if ( $cgi->request_method eq 'GET') {
         my $id = $cgi->param('id');
 
-        my $prep_query = $dbh->prepare("DELETE FROM storages WHERE id = " . $id);
-        $prep_query->execute();
-        $dbh->commit();
+        StorageService->new()->delete_by_id($id, $dbh);
+
         print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=delete&id=' . $id);
     }
 }
@@ -129,8 +119,8 @@ sub _storage_edit {
     my $cgi = $self->{cgi};
     my $template = HTML::Template->new(filename => 'Templates/storage_edit.tmpl');
 
-    my $storage = Storage->new();
-    my $st_service = StorageService->new($storage);
+    my $st_service = StorageService->new();
+    my $storage = $st_service->create;
 
     if ( $cgi->request_method eq 'GET') {
         my $id = $cgi->param('id');
@@ -143,7 +133,8 @@ sub _storage_edit {
         $template->param(capacity => $storage->get_capacity);
     }
     if ( $cgi->request_method eq 'POST') {
-        $st_service->update_to_db($dbh,$cgi->param('ipt_id'), $cgi->param('ipt_name'), $cgi->param('ipt_capacity'));
+        $st_service->update_to_db($dbh, $st_service->{storage}, $cgi->param('ipt_id'),
+            $cgi->param('ipt_name'), $cgi->param('ipt_capacity'));
 
         print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=edit&id=' . $cgi->param('ipt_id'));
     } else {
@@ -165,6 +156,59 @@ sub _show_errorpage {
     my ($self) = @_;
     my $template = HTML::Template->new(filename => 'Templates/error.tmpl');
     print $template->output;
+}
+
+sub _server_showall {
+    my ($self) = @_;
+
+    my $cgi = $self->{cgi};
+    my $template = HTML::Template->new(filename => 'Templates/server_showall.tmpl');
+    my $dbh = $self->{dbh};
+
+    my $prep_query = $dbh->prepare("SELECT *
+        FROM servers, operating_systems, storages
+        WHERE operating_systems.id = servers.os_id AND storages.id = servers.storage_id");
+    $prep_query->execute();
+
+    my $all_servers;
+    while (my @row = $prep_query->fetchrow_array()) {
+        my $storage = Storage->new;
+        $storage = StorageService->new($storage)->fill($row[9], $row[10], $row[11], $row[12], $row[13]);
+
+        my $os = OperatingSystem->new;
+        $os->set_id($row[7])
+            ->set_name($row[8]);
+
+        my $server = Server->new;
+        $server = $server->set_id($row[0])->set_name($row[1])->set_storage($storage)->set_os($os)
+            ->set_checksum($row[4])->set_created_at($row[5])->set_updated_at($row[6]);
+
+        push @{$all_servers},
+        {
+            id => $server->get_id,
+            name => $server->get_name,
+            operating_system => $server->get_os->get_name,
+            storage => $server->get_storage->get_storage_name,
+            checksum => $server->get_checksum,
+            created_at => $server->get_created_at,
+            updated_at => $server->get_updated_at
+        };
+    }
+
+    if ($cgi->param('action') and $cgi->param('id')) {
+        my $rp = ResultResponse->new('Server', $template, $cgi->param('action'), $cgi->param('id'), 1);
+        $rp->print_result_message;
+    }
+
+    $template->param(all_servers => $all_servers);
+
+    print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
+    print $template->output;
+
+#    'SELECT servers.id,servers.name, storages.name AS storage, operating_systems.name AS operating_system,
+#                        checksum, servers.created_at, servers.updated_at
+#    FROM servers, operating_systems, storages
+#    WHERE operating_systems.id = servers.os_id AND storages.id = servers.storage_id';
 }
 
 1;

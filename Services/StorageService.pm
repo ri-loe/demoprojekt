@@ -7,16 +7,22 @@ use DDP;
 # constructor
 sub new {
     # class = class name
-    my ($class, $storage) = @_;
+    my ($class) = @_;
     # second parameter module name
     my $self = bless {
-            storage => $storage
         }, $class;
+    return $self;
+}
+
+sub create {
+    my ($self) = @_;
+    $$self{storage} = Storage->new;
     return $self;
 }
 
 sub fill {
     my ($self, $id, $name, $capacity, $created_at, $updated_at) = @_;
+    $self->create;
     my $storage = $self->{storage};
     $storage->set_storage_id($id)
         ->set_storage_name($name)
@@ -28,8 +34,8 @@ sub fill {
 
 
 sub save_to_db {
-    my ($self, $dbh) = @_;
-    my $storage = $self->{storage};
+    my ($self ,$storage ,$dbh) = @_;
+
     my $prep_query = $dbh->prepare("INSERT INTO storages (name, capacity) VALUES ('"
         . $storage->get_storage_name . "', "
         . $storage->get_capacity . ")");
@@ -38,8 +44,7 @@ sub save_to_db {
 }
 
 sub update_to_db {
-    my ($self, $dbh, $id, $name, $capacity) = @_;
-    my $storage = $self->{storage};
+    my ($self, $dbh, $storage, $id, $name, $capacity) = @_;
 
     $storage->set_storage_name($name);
     $storage->set_capacity($capacity);
@@ -53,24 +58,27 @@ sub update_to_db {
 }
 
 sub delete_by_id {
+    my ($self, $id, $dbh) = @_;
+
+    my $prep_query = $dbh->prepare("DELETE FROM storages WHERE id = " . $id);
+    $prep_query->execute();
+    $dbh->commit();
 
 }
 
 sub get_storage_by_id {
     my ($self, $dbh, $id) = @_;
-    my $storage = $self->{storage};
 
     my $prep_query = $dbh->prepare("SELECT * FROM storages WHERE id = " . $id);
     $prep_query->execute();
     my @matches  = $prep_query->fetchrow_array;
 
-    return $storage = $self->fill($matches[0], $matches[1], $matches[2], $matches[3], $matches[4]);
+    return $self->fill($matches[0], $matches[1], $matches[2], $matches[3], $matches[4]);
 }
 
 
 sub get_all_storages {
     my ($self, $dbh) = @_;
-    my $storage = $self->{storage};
 
     my $prep_query = $dbh->prepare("SELECT id, name, capacity, cast(created_at as timestamp(0))" .
     ", cast(updated_at as timestamp(0)) FROM storages ORDER BY id ASC;");
@@ -78,7 +86,7 @@ sub get_all_storages {
 
     my $all_storages;
     while (my @row = $prep_query->fetchrow_array()) {
-        $storage = $self->fill($row[0], $row[1], $row[2], $row[3], $row[4]);
+        my $storage = $self->fill($row[0], $row[1], $row[2], $row[3], $row[4]);
         push @{$all_storages},
         {
             id => $storage->get_storage_id,

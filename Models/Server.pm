@@ -8,12 +8,12 @@ sub new {
     return $self;
 }
 
-sub get_os_id {
-    return $_[0]->{os_id};
+sub get_os {
+    return $_[0]->{os};
 }
-sub set_os_id {
+sub set_os {
     my ($self, $new_value) = @_;
-    $$self{os_id} = $new_value;
+    $$self{os} = $new_value;
     return $self;
 }
 sub get_checksum {
@@ -40,12 +40,12 @@ sub set_id {
     $$self{id} = $new_value;
     return $self;
 }
-sub get_storage_id {
-    return $_[0]->{storage_id};
+sub get_storage {
+    return $_[0]->{storage};
 }
-sub set_storage_id {
+sub set_storage {
     my ($self, $new_value) = @_;
-    $$self{storage_id} = $new_value;
+    $$self{storage} = $new_value;
     return $self;
 }
 sub get_updated_at {

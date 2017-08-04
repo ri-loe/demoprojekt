@@ -28,12 +28,12 @@
                         <td><TMPL_VAR NAME=name></td>
                         <td><TMPL_VAR NAME=operating_system></td>
                         <td><TMPL_VAR NAME=storage></td>
-                        <td><TMPL_VAR NAME=checksum></td>
+                        <td><textarea class="hash_text_area readonly"><TMPL_VAR NAME=checksum></textarea></td>
                         <td><TMPL_VAR NAME=created_at></td>
                         <td><TMPL_VAR NAME=updated_at></td>
                     <td>
                         <a href="/index.pl/server/edit?id=<TMPL_VAR NAME=id>" class="edit_button"></a>
-                        <a href="/index.pl/servere/delete?id=<TMPL_VAR NAME=id>" class="delete_button"></a>
+                        <a href="/index.pl/server/delete?id=<TMPL_VAR NAME=id>" class="delete_button"></a>
                     </td>
                     </tr>
                     </TMPL_LOOP>
