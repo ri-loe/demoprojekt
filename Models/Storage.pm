@@ -3,13 +3,6 @@ use strict;
 use warnings FATAL => 'all';
 
 
-my $storage_id;
-my $storage_name;
-my $capacity;
-my $created_at;
-my $updated_at;
-
-
 sub new {
     my ($class) = @_;
     my $self = bless {}, $class;

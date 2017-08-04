@@ -148,6 +148,16 @@ Single styles
     list-style: none;
 }
 
+.list-unstyled > li
+{
+    margin-bottom: 10px;
+}
+.list-unstyled > li > label
+{
+    display:inline-block;
+
+}
+
 .list-inline
 {
     padding-left: 0;

@@ -1,10 +1,10 @@
 package FrontController;
 use strict;
 use warnings FATAL => 'all';
-use DDP;
-    #(output => 'stdout');
+use DDP (output => 'stdout');
 use HTML::Template;
 use Models::Storage;
+use Services::StorageService;
 
 # constructor
 sub new {
@@ -54,22 +54,10 @@ sub _storage_showall {
     my $template = HTML::Template->new(filename => 'Templates/storage_showall.tmpl');
     my $dbh = $self->{dbh};
 
-    my $prep_query = $dbh->prepare("SELECT id, name, capacity, cast(created_at as timestamp(0))" .
-        ", cast(updated_at as timestamp(0)) FROM storages ORDER BY id ASC;");
-    $prep_query->execute();
+    my $storage = Storage->new();
+    my $st_service = StorageService->new($storage);
+    my $all_storages = $st_service->get_all_storages($dbh);
 
-    my $all_storages;
-    while (my @row = $prep_query->fetchrow_array()) {
-        push @{$all_storages},
-        {
-            id => $row[0],
-            name => $row[1],
-            capacity => $row[2],
-            created_at => $row[3],
-            updated_at => $row[4]
-        }
-        ;
-    }
     if ($cgi->param('action') and $cgi->param('id')) {
         if($cgi->param('action') eq 'new') {
             my $message = ('Storage ' . $cgi->param('id') . ' created!');
@@ -82,6 +70,7 @@ sub _storage_showall {
             $template->param(result_message => $message);
         }
     }
+
     $template->param(all_storages => $all_storages);
 
     print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
@@ -96,24 +85,18 @@ sub _storage_new {
     my $cgi = $self->{cgi};
 
     if ( $cgi->request_method eq 'POST') {
-        my $name = $cgi->param('ipt_name');
-        my $capacity =scalar $cgi->param('ipt_capacity');
+        my $name = $cgi->param('ipt_name') =s/<([^>]|\n)*>//g;
+        my $capacity = $cgi->param('ipt_capacity') =s/<([^>]|\n)*>//g;
 
         #########################
         #   TODO:               #
         #   validate inserts    #
         #                       #
         #########################
-
-        my $storage = Storage->new;
-        $storage->set_storage_name($name);
-        $storage->set_capacity($capacity);
-
-        my $prep_query = $dbh->prepare("INSERT INTO storages (name, capacity) VALUES ('"
-            .  $storage->get_storage_name . "', "
-            . $storage->get_capacity . ")");
-        $prep_query->execute();
-        $dbh->commit();
+        my $storage = Storage->new();
+        my $st_service = StorageService->new($storage);
+        $st_service->fill(undef, $name, $capacity, undef, undef)
+            ->save_to_db($dbh);
 
         my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
         print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
@@ -146,20 +129,13 @@ sub _storage_edit {
     my $cgi = $self->{cgi};
     my $template = HTML::Template->new(filename => 'Templates/storage_edit.tmpl');
 
-    my $storage = Storage->new;
+    my $storage = Storage->new();
+    my $st_service = StorageService->new($storage);
 
     if ( $cgi->request_method eq 'GET') {
         my $id = $cgi->param('id');
 
-        my $prep_query = $dbh->prepare("SELECT * FROM storages WHERE id = " . $id);
-        $prep_query->execute();
-        my @matches  = $prep_query->fetchrow_array;
-
-        $storage->set_storage_id($matches[0]);
-        $storage->set_storage_name($matches[1]);
-        $storage->set_capacity($matches[2]);
-        $storage->set_created_at($matches[3]);
-        $storage->set_updated_at($matches[4]);
+        $storage = $st_service->get_storage_by_id($dbh, $id);
 
         # fill the form with data
         $template->param(id => $storage->get_storage_id);
@@ -167,18 +143,9 @@ sub _storage_edit {
         $template->param(capacity => $storage->get_capacity);
     }
     if ( $cgi->request_method eq 'POST') {
-        $storage->set_storage_id($cgi->param('ipt_id'));
-        $storage->set_storage_name($cgi->param('ipt_name'));
-        $storage->set_capacity($cgi->param('ipt_capacity'));
+        $st_service->update_to_db($dbh,$cgi->param('ipt_id'), $cgi->param('ipt_name'), $cgi->param('ipt_capacity'));
 
-        my $prep_query = $dbh->prepare("UPDATE storages SET "
-            . "name='" . $storage->get_storage_name
-            . "', capacity=" . $storage->get_capacity
-            . " WHERE id=" . $storage->get_storage_id);
-        $prep_query->execute();
-        $dbh->commit();
-
-        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=edit&id=' . $storage->get_storage_id);
+        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=edit&id=' . $cgi->param('ipt_id'));
     } else {
         print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
         print $template->output;
@@ -199,6 +166,5 @@ sub _show_errorpage {
     my $template = HTML::Template->new(filename => 'Templates/error.tmpl');
     print $template->output;
 }
-
 
 1;

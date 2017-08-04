@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <link rel="stylesheet" type="text/css" href="/Assets/CSS/demo.css" />
+        <title>Server</title>
+    </head>
+    <body>
+        <div class="container">
+            <h1><b>Demoprojekt - Server</b></h1>
+            <TMPL_INCLUDE NAME= navigation.tmpl>
+            <div class="content">
+                <p class="result_message"><TMPL_VAR NAME="result_message"></p>
+                <table>
+                    <tr>
+                        <th>Id</th>
+                        <th>Name</th>
+                        <th>Operating System</th>
+                        <th>Storage</th>
+                        <th>Checksum</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                        <th>Actions</th>
+                    </tr>
+                    <TMPL_LOOP NAME=all_servers>
+                    <tr>
+                        <td><TMPL_VAR NAME=id></td>
+                        <td><TMPL_VAR NAME=name></td>
+                        <td><TMPL_VAR NAME=operating_system></td>
+                        <td><TMPL_VAR NAME=storage></td>
+                        <td><TMPL_VAR NAME=checksum></td>
+                        <td><TMPL_VAR NAME=created_at></td>
+                        <td><TMPL_VAR NAME=updated_at></td>
+                    <td>
+                        <a href="/index.pl/server/edit?id=<TMPL_VAR NAME=id>" class="edit_button"></a>
+                        <a href="/index.pl/servere/delete?id=<TMPL_VAR NAME=id>" class="delete_button"></a>
+                    </td>
+                    </tr>
+                    </TMPL_LOOP>
+                </table>
+            </div>
+        </div>
+    </body>
+</html>
