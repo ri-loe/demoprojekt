@@ -5,8 +5,10 @@ use DDP (output => 'stdout');
 use HTML::Template;
 use Models::Server;
 use Models::OperatingSystem;
-use Services::StorageService;
 use Services::ResultResponse;
+use Services::StorageService;
+use Services::ServerService;
+use Services::OsService;
 
 # constructor
 sub new {
@@ -37,8 +39,8 @@ sub _handle_request {
 # gets the called sub from the GET params, returns "_index" if GET is empty;
 sub _get_called_sub {
     my ($self) = @_;
-    my $request_uri = $self->{cgi}->_name_and_path_from_env;
-    my @matches = $request_uri =~m/(\w+)/g;
+    my $request_path = $self->{cgi}->_name_and_path_from_env;
+    my @matches = $request_path =~m/(\w+)/g;
 
     # add _ at start for "private" method nameing
     if (@matches) {
@@ -86,8 +88,8 @@ sub _storage_new {
         #                       #
         #########################
         my $st_service = StorageService->new();
-        my $storage = $st_service->fill(undef, $name, $capacity);
-        $st_service->save_to_db($storage, $dbh);
+        $st_service->create_and_fill(undef, $name, $capacity);
+        $st_service->save_to_db($dbh);
 
         my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
         print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
@@ -128,8 +130,8 @@ sub _storage_edit {
         $storage = $st_service->get_storage_by_id($dbh, $id);
 
         # fill the form with data
-        $template->param(id => $storage->get_storage_id);
-        $template->param(name => $storage->get_storage_name);
+        $template->param(id => $storage->get_id);
+        $template->param(name => $storage->get_name);
         $template->param(capacity => $storage->get_capacity);
     }
     if ( $cgi->request_method eq 'POST') {
@@ -155,6 +157,7 @@ sub _index {
 sub _show_errorpage {
     my ($self) = @_;
     my $template = HTML::Template->new(filename => 'Templates/error.tmpl');
+    print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
     print $template->output;
 }
 
@@ -165,38 +168,10 @@ sub _server_showall {
     my $template = HTML::Template->new(filename => 'Templates/server_showall.tmpl');
     my $dbh = $self->{dbh};
 
-    my $prep_query = $dbh->prepare("SELECT *
-        FROM servers, operating_systems, storages
-        WHERE operating_systems.id = servers.os_id AND storages.id = servers.storage_id");
-    $prep_query->execute();
-
-    my $all_servers;
-    while (my @row = $prep_query->fetchrow_array()) {
-        my $storage = Storage->new;
-        $storage = StorageService->new($storage)->fill($row[9], $row[10], $row[11], $row[12], $row[13]);
-
-        my $os = OperatingSystem->new;
-        $os->set_id($row[7])
-            ->set_name($row[8]);
-
-        my $server = Server->new;
-        $server = $server->set_id($row[0])->set_name($row[1])->set_storage($storage)->set_os($os)
-            ->set_checksum($row[4])->set_created_at($row[5])->set_updated_at($row[6]);
-
-        push @{$all_servers},
-        {
-            id => $server->get_id,
-            name => $server->get_name,
-            operating_system => $server->get_os->get_name,
-            storage => $server->get_storage->get_storage_name,
-            checksum => $server->get_checksum,
-            created_at => $server->get_created_at,
-            updated_at => $server->get_updated_at
-        };
-    }
+    my $all_servers = ServerService->new()->get_all_servers($dbh);
 
     if ($cgi->param('action') and $cgi->param('id')) {
-        my $rp = ResultResponse->new('Server', $template, $cgi->param('action'), $cgi->param('id'), 1);
+        my $rp = ResultResponse->new('Server ', $template, $cgi->param('action'), $cgi->param('id'), 1);
         $rp->print_result_message;
     }
 
@@ -204,11 +179,45 @@ sub _server_showall {
 
     print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
     print $template->output;
-
-#    'SELECT servers.id,servers.name, storages.name AS storage, operating_systems.name AS operating_system,
-#                        checksum, servers.created_at, servers.updated_at
-#    FROM servers, operating_systems, storages
-#    WHERE operating_systems.id = servers.os_id AND storages.id = servers.storage_id';
 }
+
+sub _server_new {
+    my ($self) = @_;
+    my $dbh = $self->{dbh};
+    my $template = HTML::Template->new(filename => 'Templates/server_new.tmpl');
+    my $cgi = $self->{cgi};
+
+    my $os_service = OsService->new;
+    my $all_oss = $os_service->get_all_os($dbh);
+
+    my $st_service = StorageService->new;
+    my $all_storages = $st_service->get_all_storages($dbh);
+
+    if ( $cgi->request_method eq 'POST') {
+        my $server_name = $cgi->param('ipt_name');
+        my $sel_os_id = $cgi->param('select_os');
+        my $sel_stor_id = $cgi->param('select_storage');
+
+        my $sel_os = $os_service->get_os_by_id($dbh, $sel_os_id);
+        my $sel_stor = $st_service->get_storage_by_id($dbh, $sel_stor_id);
+
+        my $serv_service = ServerService->new;
+        my $checksum = $serv_service->create_checksum($server_name, $sel_os_id, $sel_stor_id);
+
+        $serv_service->create_and_fill(undef, $server_name, $sel_os, $sel_stor, $checksum);
+        $serv_service->save_to_db($dbh);
+
+        my $last_id = $dbh->last_insert_id(undef, undef, 'servers', undef);
+        print $self->{cgi}->redirect(-location => '/index.pl/server/showall?action=new&id=' . $last_id);
+    } else {
+        $template->param(all_oss => $all_oss);
+        $template->param(all_storages => $all_storages);
+        print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
+        print $template->output;
+    }
+
+}
+
+
 
 1;

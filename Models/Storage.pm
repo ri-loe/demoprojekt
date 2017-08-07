@@ -9,23 +9,23 @@ sub new {
     return $self;
 }
 
-sub get_storage_id {
-    return $_[0]->{storage_id};
+sub get_id {
+    return $_[0]->{id};
 }
 
-sub set_storage_id {
+sub set_id {
     my ($self, $new_value) = @_;
-    $$self{storage_id} = $new_value;
+    $$self{id} = $new_value;
     return $self;
 }
 
-sub get_storage_name {
-    return $_[0]->{storage_name};
+sub get_name {
+    return $_[0]->{name};
 }
 
-sub set_storage_name {
+sub set_name {
     my ($self, $new_value) = @_;
-    $$self{storage_name} = $new_value;
+    $$self{name} = $new_value;
     return $self;
 }
 
