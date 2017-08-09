@@ -82,4 +82,22 @@ sub get_all_servers {
     return $all_servers;
 }
 
+sub delete_by_id {
+    my ($self, $id, $dbh) = @_;
+
+    my $prep_query = $dbh->prepare("DELETE FROM servers WHERE id = " . $id);
+    $prep_query->execute();
+    $dbh->commit();
+}
+
+sub update_to_db {
+    my ($self, $dbh, $server, $id, $name, $os, $storage, $checksum) = @_;
+
+    # set stuff
+
+    # query this
+
+    # commit this
+}
+
 1;

@@ -9,6 +9,7 @@ use Services::ResultResponse;
 use Services::StorageService;
 use Services::ServerService;
 use Services::OsService;
+use Services::InputValidator;
 
 # constructor
 sub new {
@@ -78,21 +79,34 @@ sub _storage_new {
     my $template = HTML::Template->new(filename => 'Templates/storage_new.tmpl');
     my $cgi = $self->{cgi};
 
+    if ($cgi->param('error')) {
+        my $err_str = $cgi->param('error');
+        $err_str =~s /_/ /g;
+        $template->param(result_message => $err_str);
+    }
+
     if ( $cgi->request_method eq 'POST') {
         my $name = $cgi->param('ipt_name');
         my $capacity = $cgi->param('ipt_capacity');
 
-        #########################
-        #   TODO:               #
-        #   validate inserts    #
-        #                       #
-        #########################
+        my $ipt_validator = InputValidator->new();
+        $name = $ipt_validator->validate_name_input($name);
+        $capacity = $ipt_validator->validate_capacity_input($capacity);
+
         my $st_service = StorageService->new();
         $st_service->create_and_fill(undef, $name, $capacity);
         $st_service->save_to_db($dbh);
 
-        my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
-        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
+        if ($st_service->{db_error}) {
+        #    print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
+            my @matches = $st_service->{db_error} =~m/(\w+)/g;
+            my $err_str = join('_', @matches);
+            print $self->{cgi}->redirect(-location => '/index.pl/storage/new?error=' . $err_str);
+        } else {
+            my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
+            print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
+        }
+
     } else {
         print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
         print $template->output;
@@ -188,12 +202,9 @@ sub _server_new {
     my $cgi = $self->{cgi};
 
     my $os_service = OsService->new;
-    my $all_oss = $os_service->get_all_os($dbh);
-
     my $st_service = StorageService->new;
-    my $all_storages = $st_service->get_all_storages($dbh);
 
-    if ( $cgi->request_method eq 'POST') {
+    if ($cgi->request_method eq 'POST') {
         my $server_name = $cgi->param('ipt_name');
         my $sel_os_id = $cgi->param('select_os');
         my $sel_stor_id = $cgi->param('select_storage');
@@ -209,15 +220,32 @@ sub _server_new {
 
         my $last_id = $dbh->last_insert_id(undef, undef, 'servers', undef);
         print $self->{cgi}->redirect(-location => '/index.pl/server/showall?action=new&id=' . $last_id);
-    } else {
-        $template->param(all_oss => $all_oss);
-        $template->param(all_storages => $all_storages);
+    }
+    else {
+        $template->param(all_oss => $os_service->get_all_os($dbh));
+        $template->param(all_storages => $st_service->get_all_storages($dbh));
         print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
         print $template->output;
     }
+}
+
+sub server_edit {
+
 
 }
 
+sub server_delete {
+    my ($self) = @_;
+    my $cgi = $self->{cgi};
+    my $dbh = $self->{dbh};
 
+    if ( $cgi->request_method eq 'GET') {
+        my $id = $cgi->param('id');
+
+        ServerService->new()->delete_by_id($id, $dbh);
+
+        print $self->{cgi}->redirect(-location => '/index.pl/server/showall?action=delete&id=' . $id);
+    }
+}
 
 1;

@@ -35,11 +35,17 @@ sub create_and_fill {
 sub save_to_db {
     my ($self ,$dbh) = @_;
     my $storage = $self->{storage};
-    my $prep_query = $dbh->prepare("INSERT INTO storages (name, capacity) VALUES ('"
-        . $storage->get_name . "', "
-        . $storage->get_capacity . ")");
-    $prep_query->execute();
-    $dbh->commit();
+    eval {
+        my $prep_query = $dbh->prepare("INSERT INTO storages (name, capacity) VALUES ('"
+            . $storage->get_name . "', "
+            . $storage->get_capacity . ")");
+        $prep_query->execute();
+        $self->{db_error} = $prep_query->err;
+        $dbh->commit();
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    }
 }
 
 sub update_to_db {

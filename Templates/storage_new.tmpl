@@ -10,7 +10,8 @@
             <h1><b>Demoprojekt - Storage</b></h1>
             <TMPL_INCLUDE NAME= navigation.tmpl>
             <div class="content">
-                <form method="post">
+            <p class="result_message"><TMPL_VAR NAME="result_message"></p>
+                <form method="post" onsubmit="return numberInputValidation()">
                     <h3>New Storage</h3>
                     <ul class="list-unstyled">
                         <li>
@@ -20,7 +21,8 @@
                         </li>
                         <li>
                             <label for="ipt_capacity">Capacity:
-                                <input type="text" name="ipt_capacity" value="" required/>
+                                <input id="ipt_capacity" type="text" name="ipt_capacity" value="" required/>
+                                <p id="validator_output"></p>
                             </label>
                         </li>
                         <li>
@@ -30,5 +32,20 @@
                 </form>
             </div>
         </div>
+        <script>
+            function numberInputValidation() {
+                var input_value, text;
+
+                // Get the value of the input field with id=ipt_capacity
+                input_value = document.getElementById("ipt_capacity").value;
+
+                // if input is not a number
+                if (isNaN(input_value)) {
+                    text = "This Field can only contain Numbers.";
+                    document.getElementById("validator_output").innerHTML = text;
+                    return false;
+                }
+            }
+        </script>
     </body>
 </html>

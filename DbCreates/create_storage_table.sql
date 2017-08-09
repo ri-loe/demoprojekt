@@ -3,8 +3,8 @@
 -- DROP TABLE public.storages;
 
 CREATE TABLE public.storages (id SERIAL PRIMARY KEY, name varchar(255) NOT NULL,
-                              capacity bigint NOT NULL, created_at timestamp DEFAULT current_timestamp,
-                              updated_at timestamp DEFAULT current_timestamp)
+                              capacity bigint NOT NULL, created_at timestamp(0) DEFAULT current_timestamp,
+                              updated_at timestamp(0) DEFAULT current_timestamp)
 WITH (
     OIDS = FALSE
 )
