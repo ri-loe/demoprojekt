@@ -61,8 +61,8 @@ sub _storage_showall {
 
     my $all_storages = StorageService->new()->get_all_storages($dbh);
 
-    if ($cgi->param('action') and $cgi->param('id')) {
-        my $rp = ResultResponse->new('Storage', $template, $cgi->param('action'), $cgi->param('id'), 1);
+    if (scalar $cgi->param('action') and scalar $cgi->param('id')) {
+        my $rp = ResultResponse->new('Storage', $template, scalar $cgi->param('action'), scalar $cgi->param('id'), 1);
         $rp->print_result_message;
     }
 
@@ -79,8 +79,8 @@ sub _storage_new {
     my $template = HTML::Template->new(filename => 'Templates/storage_new.tmpl');
     my $cgi = $self->{cgi};
 
-    if ($cgi->param('error')) {
-        my $err_str = $cgi->param('error');
+    if (scalar $cgi->param('error')) {
+        my $err_str = scalar $cgi->param('error');
         $err_str =~s /_/ /g;
         $template->param(result_message => $err_str);
     }
@@ -92,6 +92,7 @@ sub _storage_new {
         my $ipt_validator = InputValidator->new();
         $name = $ipt_validator->validate_name_input($name);
         $capacity = $ipt_validator->validate_capacity_input($capacity);
+
 
         my $st_service = StorageService->new();
         $st_service->create_and_fill(undef, $name, $capacity);
@@ -149,10 +150,11 @@ sub _storage_edit {
         $template->param(capacity => $storage->get_capacity);
     }
     if ( $cgi->request_method eq 'POST') {
-        $st_service->update_to_db($dbh, $st_service->{storage}, $cgi->param('ipt_id'),
+        $st_service->update_to_db($dbh, $st_service->{storage}, scalar $cgi->param('ipt_id'),
             $cgi->param('ipt_name'), $cgi->param('ipt_capacity'));
 
-        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=edit&id=' . $cgi->param('ipt_id'));
+        print $self->{cgi}->redirect(
+            -location => '/index.pl/storage/showall?action=edit&id=' . scalar $cgi->param('ipt_id'));
     } else {
         print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
         print $template->output;
