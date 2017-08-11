@@ -80,11 +80,11 @@ sub _storage_new {
     my $dbh = $self->{dbh};
     my $template = HTML::Template->new(filename => 'Templates/storage_new.tmpl');
     my $cgi = $self->{cgi};
+    my $rp = ResultResponse->new('Storage', $template, 'new');
 
     if (scalar $cgi->param('error')) {
-        my $err_str = scalar $cgi->param('error');
-        $err_str =~s /_/ /g;
-        $template->param(result_message => $err_str);
+        $rp->set_msg(scalar $cgi->param('error'));
+        $rp->print_result_message;
     }
 
     if ( $cgi->request_method eq 'POST') {
@@ -101,9 +101,9 @@ sub _storage_new {
         $st_service->save_to_db($dbh);
 
         if ($st_service->{db_error}) {
-            my @matches = $st_service->{db_error} =~m/(\w+)/g;
-            my $err_str = join('_', @matches);
-            print $self->{cgi}->redirect(-location => '/index.pl/storage/new?error=' . $err_str);
+            my $error_string = $rp->format_error_msg($st_service->{db_error});
+
+            print $self->{cgi}->redirect(-location => '/index.pl/storage/new?error=' . $error_string);
         } else {
             my $last_id = $dbh->last_insert_id(undef, undef, 'storages', undef);
             print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=new&id=' . $last_id);
@@ -146,21 +146,19 @@ sub _storage_edit {
     my $template = HTML::Template->new(filename => 'Templates/storage_edit.tmpl');
 
     my $st_service = StorageService->new();
-    my $storage = $st_service->create;
 
-    if ( $cgi->request_method eq 'GET') {
-        my $id = scalar $cgi->param('id');
+    my $id = scalar $cgi->url_param('id');
 
-        $storage = $st_service->get_storage_by_id($dbh, $id);
+    my $storage = $st_service->get_storage_by_id($dbh, $id);
 
-        # fill the form with data
-        $template->param(id => $storage->get_id);
-        $template->param(name => $storage->get_name);
-        $template->param(capacity => $storage->get_capacity);
-    }
+    # fill the form with data
+    $template->param(id => $storage->get_id);
+    $template->param(name => $storage->get_name);
+    $template->param(capacity => $storage->get_capacity);
+
     if ( $cgi->request_method eq 'POST') {
-        $st_service->update_to_db($dbh, $st_service->{storage}, scalar $cgi->param('ipt_id'),
-            scalar $cgi->param('ipt_name'), scalar $cgi->param('ipt_capacity'));
+        $st_service->update_to_db($dbh, $storage, scalar $cgi->param('ipt_id'), scalar $cgi->param('ipt_name'),
+                    scalar $cgi->param('ipt_capacity'));
 
         print $self->{cgi}->redirect(
             -location => '/index.pl/storage/showall?action=edit&id=' . scalar $cgi->param('ipt_id'));
@@ -252,6 +250,8 @@ sub _server_edit {
         $template->param(result_message => $err_str);
     }
 
+    my $id = scalar $cgi->url_param('id');
+
     my $st_service = StorageService->new();
     my $all_storages = $st_service->get_all_storages($dbh);
 
@@ -259,24 +259,20 @@ sub _server_edit {
     my $all_oss = $os_service->get_all_os($dbh);
 
     my $s_service = ServerService->new();
+    my $server = $s_service->get_server_by_id($dbh, $id);
 
-    if ( $cgi->request_method eq 'GET') {
-        my $id = scalar $cgi->param('id');
+    $template->param(id => $server->get_id);
+    $template->param(name => $server->get_name);
+    $template->param(all_oss => $all_oss);
+    $template->param(sel_os => $server->get_os->get_id);
+    $template->param(all_storages => $all_storages);
+    $template->param(sel_storage => $server->get_storage->get_id);
 
-        my $server = $s_service->get_server_by_id($dbh, $id);
-
-        $template->param(id => $server->get_id);
-        $template->param(name => $server->get_name);
-        $template->param(all_oss => $all_oss);
-        $template->param(sel_os => $server->get_os->get_id);
-        $template->param(all_storages => $all_storages);
-        $template->param(sel_storage => $server->get_storage->get_id);
-    }
     if ( $cgi->request_method eq 'POST') {
         my $st = $st_service->get_storage_by_id($dbh, scalar $cgi->param('select_storage'));
         my $os = $os_service->get_os_by_id($dbh, scalar $cgi->param('select_os'));
 
-        $s_service->update_to_db($dbh, scalar $cgi->param('ipt_id'), scalar $cgi->param('ipt_name'),
+        $s_service->update_to_db($dbh, $server, scalar $cgi->param('ipt_id'), scalar $cgi->param('ipt_name'),
                    $os, $st);
 
         if ($st_service->{db_error}) {

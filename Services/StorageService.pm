@@ -97,23 +97,30 @@ sub get_storage_by_id {
 
 sub get_all_storages {
     my ($self, $dbh) = @_;
-    my $prep_query = $dbh->prepare("SELECT id, name, capacity, cast(created_at as timestamp(0))" .
-    ", cast(updated_at as timestamp(0)) FROM storages ORDER BY id ASC;");
-    $prep_query->execute();
-
     my $all_storages;
-    while (my @row = $prep_query->fetchrow_array()) {
-        my $storage = $self->create_and_fill($row[0], $row[1], $row[2], $row[3], $row[4]);
-        push @{$all_storages},
-        {
-            id => $storage->get_id,
-            name => $storage->get_name,
-            capacity => $storage->get_capacity,
-            created_at => $storage->get_created_at,
-            updated_at => $storage->get_updated_at
-        };
+
+    eval {
+        my $prep_query = $dbh->prepare("SELECT id, name, capacity, cast(created_at as timestamp(0))" .
+        ", cast(updated_at as timestamp(0)) FROM storages ORDER BY id ASC;");
+        $prep_query->execute();
+
+        while (my @row = $prep_query->fetchrow_array()) {
+            my $storage = $self->create_and_fill($row[0], $row[1], $row[2], $row[3], $row[4]);
+            push @{$all_storages},
+            {
+                id => $storage->get_id,
+                name => $storage->get_name,
+                capacity => $storage->get_capacity,
+                created_at => $storage->get_created_at,
+                updated_at => $storage->get_updated_at
+            };
+        }
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    } else {
+        return $all_storages;
     }
-    return $all_storages;
 }
 
 1;

@@ -41,43 +41,55 @@ sub create_and_fill {
 sub save_to_db {
     my ($self ,$dbh) = @_;
     my $server = $self->{server};
-    my $prep_query = $dbh->prepare("INSERT INTO servers (name, os_id, storage_id, checksum) VALUES ('"
-        . $server->get_name . "', "
-        . $server->get_os->get_id . ", "
-        . $server->get_storage->get_id  . ", '"
-        . $server->get_checksum . "')");
-    $prep_query->execute();
-    $dbh->commit();
+    eval {
+        my $prep_query = $dbh->prepare("INSERT INTO servers (name, os_id, storage_id, checksum) VALUES ('"
+            . $server->get_name . "', "
+            . $server->get_os->get_id . ", "
+            . $server->get_storage->get_id . ", '"
+            . $server->get_checksum . "')");
+        $prep_query->execute();
+        $dbh->commit();
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    }
 }
 
 
 sub get_all_servers {
     my ($self, $dbh) = @_;
-    my $prep_query = $dbh->prepare("SELECT *
-        FROM servers, operating_systems, storages
-        WHERE operating_systems.id = servers.os_id AND storages.id = servers.storage_id");
-    $prep_query->execute();
-
     my $all_servers;
-    while (my @row = $prep_query->fetchrow_array()) {
-        my $storage = StorageService->new->create_and_fill($row[9], $row[10], $row[11], $row[12], $row[13]);
 
-        my $os = OsService->new->create_and_fill($row[7], $row[8]);
+    eval {
+        my $prep_query = $dbh->prepare("SELECT *
+            FROM servers, operating_systems, storages
+            WHERE operating_systems.id = servers.os_id AND storages.id = servers.storage_id");
+        $prep_query->execute();
 
-        my $server = $self->create_and_fill($row[0], $row[1], $os, $storage, $row[4], $row[5], $row[6]);
+        while (my @row = $prep_query->fetchrow_array()) {
+            my $storage = StorageService->new->create_and_fill($row[9], $row[10], $row[11], $row[12], $row[13]);
 
-        push @{$all_servers},
-            {
-                id               => $server->get_id,
-                name             => $server->get_name,
-                operating_system => $server->get_os->get_name,
-                storage          => $server->get_storage->get_name,
-                checksum         => $server->get_checksum,
-                created_at       => $server->get_created_at,
-                updated_at       => $server->get_updated_at
-            };
+            my $os = OsService->new->create_and_fill($row[7], $row[8]);
+
+            my $server = $self->create_and_fill($row[0], $row[1], $os, $storage, $row[4], $row[5], $row[6]);
+
+            push @{$all_servers},
+                {
+                    id               => $server->get_id,
+                    name             => $server->get_name,
+                    operating_system => $server->get_os->get_name,
+                    storage          => $server->get_storage->get_name,
+                    checksum         => $server->get_checksum,
+                    created_at       => $server->get_created_at,
+                    updated_at       => $server->get_updated_at
+                };
+        }
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    } else {
+        return $all_servers;
     }
-    return $all_servers;
 }
 
 sub get_server_by_id {
@@ -103,16 +115,19 @@ sub get_server_by_id {
 
 sub delete_by_id {
     my ($self, $id, $dbh) = @_;
-
-    my $prep_query = $dbh->prepare("DELETE FROM servers WHERE id = " . $id);
-    $prep_query->execute();
-    $dbh->commit();
+    eval {
+        my $prep_query = $dbh->prepare("DELETE FROM servers WHERE id = " . $id);
+        $prep_query->execute();
+        $dbh->commit();
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    }
 }
 
 sub update_to_db {
-    my ($self, $dbh, $id, $name, $os, $storage) = @_;
+    my ($self, $dbh, $server, $id, $name, $os, $storage) = @_;
 
-    my $server = $self->create;
     $server->set_name($name);
     $server->set_os($os);
     $server->set_storage($storage);
