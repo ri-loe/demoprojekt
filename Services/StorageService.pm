@@ -53,38 +53,50 @@ sub update_to_db {
 
     $storage->set_name($name);
     $storage->set_capacity($capacity);
-
-    my $prep_query = $dbh->prepare("UPDATE storages SET "
-        . "name='" . $storage->get_name
-        . "', capacity=" . $storage->get_capacity
-        . " WHERE id=" . $id);
-    $prep_query->execute();
-    $dbh->commit();
+    eval {
+        my $prep_query = $dbh->prepare("UPDATE storages SET "
+            . "name='" . $storage->get_name
+            . "', capacity=" . $storage->get_capacity
+            . " WHERE id=" . $id);
+        $prep_query->execute();
+        $dbh->commit();
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    }
 }
 
 sub delete_by_id {
     my ($self, $id, $dbh) = @_;
-
-    my $prep_query = $dbh->prepare("DELETE FROM storages WHERE id = " . $id);
-    $prep_query->execute();
-    $dbh->commit();
-
+    eval {
+        my $prep_query = $dbh->prepare("DELETE FROM storages WHERE id = " . $id);
+        $prep_query->execute();
+        $dbh->commit();
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    }
 }
 
 sub get_storage_by_id {
     my ($self, $dbh, $id) = @_;
-
-    my $prep_query = $dbh->prepare("SELECT * FROM storages WHERE id = " . $id);
-    $prep_query->execute();
-    my @matches  = $prep_query->fetchrow_array;
-
-    return $self->create_and_fill($matches[0], $matches[1], $matches[2], $matches[3], $matches[4]);
+    my $result;
+    eval {
+        my $prep_query = $dbh->prepare("SELECT * FROM storages WHERE id = " . $id);
+        $prep_query->execute();
+        my @matches = $prep_query->fetchrow_array;
+        $result = $self->create_and_fill($matches[0], $matches[1], $matches[2], $matches[3], $matches[4]);
+    };
+    if ($@) {
+        $self->{db_error} = $dbh->errstr;
+    } else {
+        return $result;
+    }
 }
 
 
 sub get_all_storages {
     my ($self, $dbh) = @_;
-
     my $prep_query = $dbh->prepare("SELECT id, name, capacity, cast(created_at as timestamp(0))" .
     ", cast(updated_at as timestamp(0)) FROM storages ORDER BY id ASC;");
     $prep_query->execute();

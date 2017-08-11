@@ -3,6 +3,7 @@ use strict;
 use warnings FATAL => 'all';
 use DDP (output => 'stdout');
 use HTML::Template;
+use lib "/Users/c5261164/dev/demo";
 use Models::Server;
 use Models::OperatingSystem;
 use Services::ResultResponse;
@@ -62,7 +63,8 @@ sub _storage_showall {
     my $all_storages = StorageService->new()->get_all_storages($dbh);
 
     if (scalar $cgi->param('action') and scalar $cgi->param('id')) {
-        my $rp = ResultResponse->new('Storage', $template, scalar $cgi->param('action'), scalar $cgi->param('id'), 1);
+        my $rp = ResultResponse->new('Storage', $template, scalar $cgi->param('action'), scalar $cgi->param('id'),
+            scalar $cgi->param('msg'));
         $rp->print_result_message;
     }
 
@@ -99,7 +101,6 @@ sub _storage_new {
         $st_service->save_to_db($dbh);
 
         if ($st_service->{db_error}) {
-        #    print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
             my @matches = $st_service->{db_error} =~m/(\w+)/g;
             my $err_str = join('_', @matches);
             print $self->{cgi}->redirect(-location => '/index.pl/storage/new?error=' . $err_str);
@@ -121,11 +122,19 @@ sub _storage_delete {
     my $cgi = $self->{cgi};
     my $dbh = $self->{dbh};
 
-    if ( $cgi->request_method eq 'GET') {
-        my $id = $cgi->param('id');
+    my $id = $cgi->param('id');
+    my $st_service = StorageService->new();
 
-        StorageService->new()->delete_by_id($id, $dbh);
+    $st_service->delete_by_id($id, $dbh);
 
+    if ($st_service->{db_error}) {
+        my $rr = ResultResponse->new;
+        my $msg = $rr->format_error_msg($st_service->{db_error});
+
+        print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=delete&id=' . $id
+                . '&msg=' . $msg);
+    }
+    else {
         print $self->{cgi}->redirect(-location => '/index.pl/storage/showall?action=delete&id=' . $id);
     }
 }
@@ -140,7 +149,7 @@ sub _storage_edit {
     my $storage = $st_service->create;
 
     if ( $cgi->request_method eq 'GET') {
-        my $id = $cgi->param('id');
+        my $id = scalar $cgi->param('id');
 
         $storage = $st_service->get_storage_by_id($dbh, $id);
 
@@ -151,7 +160,7 @@ sub _storage_edit {
     }
     if ( $cgi->request_method eq 'POST') {
         $st_service->update_to_db($dbh, $st_service->{storage}, scalar $cgi->param('ipt_id'),
-            $cgi->param('ipt_name'), $cgi->param('ipt_capacity'));
+            scalar $cgi->param('ipt_name'), scalar $cgi->param('ipt_capacity'));
 
         print $self->{cgi}->redirect(
             -location => '/index.pl/storage/showall?action=edit&id=' . scalar $cgi->param('ipt_id'));
@@ -187,7 +196,7 @@ sub _server_showall {
     my $all_servers = ServerService->new()->get_all_servers($dbh);
 
     if ($cgi->param('action') and $cgi->param('id')) {
-        my $rp = ResultResponse->new('Server ', $template, $cgi->param('action'), $cgi->param('id'), 1);
+        my $rp = ResultResponse->new('Server ', $template,scalar $cgi->param('action'), scalar $cgi->param('id'), 1);
         $rp->print_result_message;
     }
 
@@ -231,12 +240,61 @@ sub _server_new {
     }
 }
 
-sub server_edit {
+sub _server_edit {
+    my ($self) = @_;
+    my $dbh = $self->{dbh};
+    my $cgi = $self->{cgi};
+    my $template = HTML::Template->new(filename => 'Templates/server_edit.tmpl');
 
+    if (scalar $cgi->param('error')) {
+        my $err_str = scalar $cgi->param('error');
+        $err_str =~s /_/ /g;
+        $template->param(result_message => $err_str);
+    }
 
-}
+    my $st_service = StorageService->new();
+    my $all_storages = $st_service->get_all_storages($dbh);
 
-sub server_delete {
+    my $os_service = OsService->new();
+    my $all_oss = $os_service->get_all_os($dbh);
+
+    my $s_service = ServerService->new();
+
+    if ( $cgi->request_method eq 'GET') {
+        my $id = scalar $cgi->param('id');
+
+        my $server = $s_service->get_server_by_id($dbh, $id);
+
+        $template->param(id => $server->get_id);
+        $template->param(name => $server->get_name);
+        $template->param(all_oss => $all_oss);
+        $template->param(sel_os => $server->get_os->get_id);
+        $template->param(all_storages => $all_storages);
+        $template->param(sel_storage => $server->get_storage->get_id);
+    }
+    if ( $cgi->request_method eq 'POST') {
+        my $st = $st_service->get_storage_by_id($dbh, scalar $cgi->param('select_storage'));
+        my $os = $os_service->get_os_by_id($dbh, scalar $cgi->param('select_os'));
+
+        $s_service->update_to_db($dbh, scalar $cgi->param('ipt_id'), scalar $cgi->param('ipt_name'),
+                   $os, $st);
+
+        if ($st_service->{db_error}) {
+            my @matches = $st_service->{db_error} =~m/(\w+)/g;
+            my $err_str = join('_', @matches);
+            print $self->{cgi}->redirect(-location => '/index.pl/server/edit?id=' . scalar $cgi->param('ipt_id')
+                        .'&error=' . $err_str);
+        } else {
+            print $self->{cgi}->redirect(
+                -location => '/index.pl/server/showall?action=edit&id=' . scalar $cgi->param('ipt_id'));
+        }
+    } else {
+        print $self->{cgi}->header(-type => 'text/html', -charset => 'utf-8');
+        print $template->output;
+    }
+    }
+
+    sub _server_delete {
     my ($self) = @_;
     my $cgi = $self->{cgi};
     my $dbh = $self->{dbh};

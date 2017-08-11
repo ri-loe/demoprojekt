@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" type="text/css" href="/Assets/CSS/demo.css" />
+    <title>Server</title>
+  </head>
+  <body>
+    <div class="container">
+      <h1><b>Demoprojekt - Server</b></h1>
+      <TMPL_INCLUDE NAME= navigation.tmpl>
+      <div class="content">
+        <p class="result_message"><TMPL_VAR NAME="result_message"></p>
+        <form method="post">
+          <h3>Edit Server</h3>
+          <ul class="list-unstyled">
+            <li>
+              <label for="ipt_id">Id:
+                <input type="text" name="ipt_id" value="<TMPL_VAR NAME=id>" readonly/>
+              </label>
+            </li>
+            <li>
+              <label for="ipt_name">Name:
+                <input type="text" name="ipt_name" value="<TMPL_VAR NAME=name>" required/>
+              </label>
+            </li>
+            <li>
+              <label for="select_os">Operating System:
+                <select id="sel-os" name="select_os">
+                  <TMPL_LOOP NAME=all_oss>
+                    <option value=<TMPL_VAR NAME=os_id>><TMPL_VAR NAME=os_name></option>
+                  </TMPL_LOOP>
+                </select>
+              </label>
+            </li>
+            <li>
+              <label for="select_storage">Storage:
+                <select id="sel-storage" name="select_storage">
+                  <TMPL_LOOP NAME=all_storages>
+                    <option value=<TMPL_VAR NAME=id>><TMPL_VAR NAME=name></option>
+                    <span name="capacity" type=hidden value="<TMPL_VAR NAME=capacity>">
+                    <span name="created_at" type=hidden value="<TMPL_VAR NAME=created_at>">
+                    <span name="updated_at" type=hidden value="<TMPL_VAR NAME=updated_at>">
+                  </TMPL_LOOP>
+                </select>
+              </label>
+            </li>
+            <li>
+            <input type="submit" class="btn" name="submit_new_server" value="Submit" />
+            </li>
+          </ul>
+        </form>
+      </div>
+    </div>
+    <script>
+        var selStorage = document.getElementById("sel-storage");
+        var selOs = document.getElementById("sel-os");
+
+        selStorage.value=<TMPL_VAR NAME=sel_storage>;
+        selOs.value=<TMPL_VAR NAME=sel_os>;
+    </script>
+  </body>
+</html>

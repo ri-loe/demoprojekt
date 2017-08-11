@@ -1,6 +1,7 @@
 package ResultResponse;
 use strict;
 use warnings FATAL => 'all';
+use DDP;
 
 sub new {
     my ($class,$model_name , $template, $action, $id, $msg) = @_;
@@ -19,18 +20,36 @@ sub print_result_message {
     my $template = $self->{template};
 
     if($self->{action} eq 'new') {
-        my $message = ($self->{modelname} . ' ' . $self->{id} . ' created!');
+        my $message = ($self->{modelname} . ' with Id: ' . $self->{id} . ' created!');
         $template->param(result_message => $message);
-        return 1;
     } elsif ($self->{action} eq 'delete') {
-        my $message = ($self->{modelname} . ' ' . $self->{id} . ' deleted!');
-        $template->param(result_message => $message);
-        return 1;
+        unless ($self->{msg}) {
+            my $message = ($self->{modelname} . ' with Id: ' . $self->{id} . ' deleted!');
+            $template->param(result_message => $message);
+        } else {
+            $template->param(result_message => $self->_format_msg);
+        }
     } else {
-        my $message = ($self->{modelname} . ' ' . $self->{id} . ' edited!');
+        my $message = ($self->{modelname} . ' with Id: ' . $self->{id} . ' edited!');
         $template->param(result_message => $message);
-        return 1;
     }
+}
+
+sub format_error_msg {
+    my ($self, $raw) = @_;
+    my @matches = $raw =~ m/(\w+)/g;
+    my $err_str = join('_', @matches);
+    my @err_splice = $err_str =~m /(DETAIL\w+)/;
+    my $msg = $err_splice[0];
+    $msg =~s /DETAIL/Error/;
+    return $msg;
+}
+
+sub _format_msg {
+    my ($self) = @_;
+    my $msg = $self->{msg};
+    $msg =~s /_/ /g;
+    return $msg;
 }
 
 1;
